@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import scipy
 from scipy.optimize import minimize
 
 def calculate_sector_statistics(returns):
