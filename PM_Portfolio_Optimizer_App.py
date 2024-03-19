@@ -395,7 +395,7 @@ if st.sidebar.checkbox('Portfolio Optimizer 3', value = False):
         # Button to run the analysis
         if st.button('Run Analysis'):
             run_analysis(tickers, start_date, end_date, risk_free_rate, num_simulations)
-if st.sidebar.checkbox('Portflio Optimizer 4', value=False):
+#if st.sidebar.checkbox('Portflio Optimizer 4', value=False):
     
-if st.sidebar.checkbox('Portflio Optimizer 5', value=False):
+#if st.sidebar.checkbox('Portflio Optimizer 5', value=False):
     
