@@ -7,4 +7,4 @@ scipy
 seaborn
 PyPortfolioOpt
 yfinance
-sklearn
+scikit-learn
