@@ -1,0 +1,91 @@
+import pandas as pd
+import numpy as np
+import yfinance as yf
+import streamlit as st
+from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+# Function to fetch historical data
+def fetch_data(tickers, start_date, end_date):
+    data = pd.DataFrame()
+    valid_tickers = []
+    for ticker in tickers:
+        try:
+            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            if not df.empty:
+                data[ticker] = df['Adj Close']
+                valid_tickers.append(ticker)
+            else:
+                st.warning(f"No data available for {ticker}. Skipping...")
+        except Exception as e:
+            st.error(f"Failed to fetch data for {ticker}: {e}")
+    return data, valid_tickers
+
+# Portfolio Analysis Functions
+def calculate_sharpe_ratio(returns, volatility):
+    risk_free_rate = 0.02  # Assuming a risk-free rate of 2%
+    return (returns - risk_free_rate) / volatility
+
+def get_portfolio_statistics(weights, daily_returns, cov_matrix):
+    portfolio_return = np.dot(weights, daily_returns.mean()) * 252
+    portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(252)
+    sharpe_ratio = calculate_sharpe_ratio(portfolio_return, portfolio_volatility)
+    return portfolio_return, portfolio_volatility, sharpe_ratio
+
+def negative_sharpe(weights, daily_returns, cov_matrix):
+    return -get_portfolio_statistics(weights, daily_returns, cov_matrix)[2]
+
+def optimize_portfolio(daily_returns, cov_matrix, valid_tickers):
+    bounds = [(0, 1) for _ in range(len(valid_tickers))]
+    constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+    initial_guess = [1. / len(valid_tickers) for _ in range(len(valid_tickers))]
+    result = minimize(negative_sharpe, initial_guess, args=(daily_returns, cov_matrix),
+                      method='SLSQP', bounds=bounds, constraints=constraints)
+    return result.x
+
+def run_analysis(tickers, start_date, end_date):
+    data, valid_tickers = fetch_data(tickers, start_date, end_date)
+    if data.empty:
+        st.error("No valid data found for any ticker symbols.")
+        return
+
+    daily_returns = data.pct_change().dropna()
+    cov_matrix = daily_returns.cov()
+    optimal_weights = optimize_portfolio(daily_returns, cov_matrix, valid_tickers)
+    
+    portfolio_return, portfolio_volatility, sharpe_ratio = get_portfolio_statistics(optimal_weights, daily_returns, cov_matrix)
+
+    ticker_weights = dict(zip(valid_tickers, optimal_weights))
+    st.write("### Suggested Ticker Weights")
+    st.table(pd.DataFrame.from_dict(ticker_weights, orient='index', columns=['Weight']))
+
+    st.write(f'**Annual Return:** {portfolio_return:.2f}')
+    st.write(f'**Daily Return:** {np.dot(optimal_weights, daily_returns.mean()):.4f}')
+    st.write(f'**Risk (Standard Deviation):** {portfolio_volatility:.2f}')
+    st.write(f'**Sharpe Ratio:** {sharpe_ratio:.2f}')
+
+    # Plot the efficient frontier
+    plot_efficient_frontier(daily_returns, cov_matrix, portfolio_return, portfolio_volatility, valid_tickers)
+
+def plot_efficient_frontier(daily_returns, cov_matrix, optimal_return, optimal_volatility, valid_tickers):
+    num_portfolios = 5000
+    results = np.zeros((3, num_portfolios))
+    for i in range(num_portfolios):
+        weights = np.random.random(len(valid_tickers))
+        weights /= np.sum(weights)
+        portfolio_return, portfolio_volatility, _ = get_portfolio_statistics(weights, daily_returns, cov_matrix)
+        results[0, i] = portfolio_volatility
+        results[1, i] = portfolio_return
+        results[2, i] = calculate_sharpe_ratio(portfolio_return, portfolio_volatility)
+
+    plt.figure(figsize=(10, 8))
+    plt.scatter(results[0, :], results[1, :], c=results[2, :], cmap='YlGnBu')
+    plt.colorbar(label='Sharpe Ratio')
+    plt.scatter(optimal_volatility, optimal_return, color='red', marker='*', s=100)
+    plt.title('Efficient Frontier')
+    plt.xlabel('Volatility')
+    plt.ylabel('Expected Returns')
+    st.pyplot(plt)
+
+# Example usage
+# run_analysis(['AAPL', 'GOOGL', 'MSFT'], '2020-01-01', '2021-01-01')
