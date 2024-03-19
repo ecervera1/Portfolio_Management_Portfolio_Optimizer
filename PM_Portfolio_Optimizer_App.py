@@ -341,9 +341,32 @@ if st.sidebar.checkbox('Portfolio Optimizer 3', value = False):
             ax.legend()
             plt.show()
     
-    def plot_monte_carlo_simulation(simulation_results, portfolio_return, portfolio_volatility):
-        # Plot Monte Carlo Simulation results
-        pass
+        import matplotlib.pyplot as plt
+
+        def plot_monte_carlo_simulation(simulation_results, portfolio_return, portfolio_volatility):
+            # Extract returns, volatilities, and Sharpe ratios from the simulation results
+            returns = [result[1] for result in simulation_results]
+            volatilities = [result[2] for result in simulation_results]
+        
+            # Find the portfolio with the highest Sharpe ratio
+            sharpe_ratios = [(result[1] - risk_free_rate) / result[2] for result in simulation_results]
+            max_sharpe_idx = np.argmax(sharpe_ratios)
+            max_sharpe_return = returns[max_sharpe_idx]
+            max_sharpe_volatility = volatilities[max_sharpe_idx]
+        
+            plt.figure(figsize=(10, 6))
+            plt.scatter(volatilities, returns, c=sharpe_ratios, cmap='viridis')
+            plt.colorbar(label='Sharpe Ratio')
+            plt.xlabel('Volatility (Std. Deviation)')
+            plt.ylabel('Expected Returns')
+            plt.title('Monte Carlo Simulation of Portfolio Optimization')
+        
+            # Highlight the portfolio with the highest Sharpe ratio
+            plt.scatter(max_sharpe_volatility, max_sharpe_return, c='red', marker='*', s=200, label='Maximum Sharpe ratio')
+            plt.legend(labelspacing=0.8)
+        
+            plt.show()
+
     
     # Initialize the Streamlit app
     st.title('Advanced Portfolio Optimizer')
