@@ -315,10 +315,31 @@ if st.sidebar.checkbox('Portfolio Optimizer 3', value = False):
         simulation_results = monte_carlo_simulation(daily_returns, cov_matrix, num_simulations)
         plot_monte_carlo_simulation(simulation_results, portfolio_return, portfolio_volatility)
     
-    # Additional Functions for Plotting
-    def plot_efficient_frontier(daily_returns, cov_matrix, optimal_return, optimal_volatility, valid_tickers):
-        # Plot efficient frontier
-        pass
+        # Additional Functions for Plotting
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from pypfopt import plotting
+        
+        # Enhanced Efficient Frontier Visualization
+        def plot_efficient_frontier(ef, daily_returns, cov_matrix, valid_tickers):
+            mu = expected_returns.mean_historical_return(daily_returns)
+            S = risk_models.sample_cov(daily_returns)
+            
+            fig, ax = plt.subplots()
+            plotting.plot_efficient_frontier(ef, ax=ax, show_assets=True)
+        
+            # Find the portfolio with maximum Sharpe ratio
+            ef.max_sharpe()
+            ret_tangent, std_tangent, _ = ef.portfolio_performance()
+            ax.scatter(std_tangent, ret_tangent, marker="*", s=100, c="r", label="Max Sharpe Ratio")
+        
+            # Plot individual asset points
+            for i, txt in enumerate(valid_tickers):
+                ax.annotate(txt, (np.sqrt(S[i][i]), mu[i]), xytext=(5,5), textcoords='offset points')
+        
+            ax.set_title("Efficient Frontier with Individual Assets")
+            ax.legend()
+            plt.show()
     
     def plot_monte_carlo_simulation(simulation_results, portfolio_return, portfolio_volatility):
         # Plot Monte Carlo Simulation results
