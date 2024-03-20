@@ -295,6 +295,9 @@ if st.sidebar.checkbox('Portfolio Optimizer 3', value = False):
     
         daily_returns = data.pct_change().dropna()
         cov_matrix = daily_returns.cov()
+        # Enforce symmetry
+        cov_matrix = (cov_matrix + cov_matrix.T) / 2
+
         optimal_weights = optimize_portfolio(daily_returns, cov_matrix, valid_tickers)
         
         portfolio_return, portfolio_volatility, sharpe_ratio = get_portfolio_statistics(optimal_weights, daily_returns, cov_matrix, risk_free_rate)
